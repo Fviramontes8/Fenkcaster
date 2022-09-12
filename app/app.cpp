@@ -5,6 +5,7 @@
 #include "GL/glut.h"
 
 #include "../include/fenkcaster/draw_shapes.hpp"
+#include "../include/fenkcaster/player.hpp"
 
 #define WIDTH 1024
 #define HEIGHT 512
@@ -56,14 +57,16 @@ void draw_map() {
 	}
 }
 
-float player_x, player_y, player_degree_x, player_degree_y, player_angle;
+// float player_x, player_y, player_degree_x, player_degree_y, player_angle;
+
+fenk_gl::Player player(100, 100, THIRTY_DEG); 
 
 void draw_player() {
 	// Draw player as a smol square dot
 	glColor3f(1, 0 ,1);
 	glPointSize(8);
 	glBegin(GL_POINTS);
-	glVertex2i(player_x, player_y);
+	glVertex2i(player.x(), player.y());
 	glEnd();
 
 	/*
@@ -89,7 +92,7 @@ void draw_rays_3D() {
 	float x_offset, y_offset;
 
 	// To start the 60 degree cone
-	ray_angle = player_angle - THIRTY_DEG;
+	ray_angle = player.angle() - THIRTY_DEG;
 	if (ray_angle < 0) {
 		ray_angle += TWO_PI;
 	}
@@ -100,20 +103,20 @@ void draw_rays_3D() {
 		const float neg_tan = -1 * tan(ray_angle);
 		const float a_tan = 1 / neg_tan;
 		if (ray_angle > M_PI) {
-			hray_y = (((int) player_y >> 6) << 6) - 0.0001;
-			hray_x = (player_y - hray_y) * a_tan + player_x;
+			hray_y = (((int) player.y() >> 6) << 6) - 0.0001;
+			hray_x = (player.y() - hray_y) * a_tan + player.x();
 			y_offset = -64;
 			x_offset = -y_offset * a_tan;
 		}
 		if (ray_angle < M_PI) {
-			hray_y = (((int) player_y >> 6) << 6) + 64;
-			hray_x = (player_y - hray_y) * a_tan + player_x;
+			hray_y = (((int) player.y() >> 6) << 6) + 64;
+			hray_x = (player.y() - hray_y) * a_tan + player.x();
 			y_offset = 64;
 			x_offset = -y_offset * a_tan;
 		}
 		if ((ray_angle == 0) || (ray_angle == M_PI)) {
-			hray_x = player_x;
-			hray_y = player_y;
+			hray_x = player.x();
+			hray_y = player.y();
 			dof = 8;
 		}
 		while (dof < 8) {
@@ -130,24 +133,24 @@ void draw_rays_3D() {
 				dof += 1;
 			}
 		}
-		const float h_dist = distance(player_x, player_y, hray_x, hray_y);
+		const float h_dist = distance(player.x(), player.y(), hray_x, hray_y);
 
 		dof = 0;
 		if ((ray_angle > HALF_PI) && ( ray_angle < THREE_HALF_PI)) {
-			vray_x = (((int) player_x >> 6) << 6) - 0.0001;
-			vray_y = (player_x - vray_x) * neg_tan + player_y;
+			vray_x = (((int) player.x() >> 6) << 6) - 0.0001;
+			vray_y = (player.x() - vray_x) * neg_tan + player.y();
 			x_offset = -64;
 			y_offset = -x_offset * neg_tan;
 		}
 		if ((ray_angle > THREE_HALF_PI) || (ray_angle < HALF_PI)) {
-			vray_x = (((int) player_x >> 6) << 6) + 64;
-			vray_y = (player_x - vray_x) * neg_tan + player_y;
+			vray_x = (((int) player.x() >> 6) << 6) + 64;
+			vray_y = (player.x() - vray_x) * neg_tan + player.y();
 			x_offset = 64;
 			y_offset = -x_offset * neg_tan;
 		}
 		if ((ray_angle == 0) || (ray_angle == M_PI)) {
-			vray_x = player_x;
-			vray_y = player_y;
+			vray_x = player.x();
+			vray_y = player.y();
 			dof = 8;
 		}
 		while (dof < 8) {
@@ -163,7 +166,7 @@ void draw_rays_3D() {
 				dof += 1;
 			}
 		}
-		const float v_dist = distance(player_x, player_y, vray_x, vray_y);
+		const float v_dist = distance(player.x(), player.y(), vray_x, vray_y);
 
 		float ray_x, ray_y;
 		float ray_dist;
@@ -180,7 +183,7 @@ void draw_rays_3D() {
 			glColor3f(0, 1, 0);
 		}
 
-		fenk_gl::draw_line(1, player_x, player_y, ray_x, ray_y);
+		fenk_gl::draw_line(1, player.x(), player.y(), ray_x, ray_y);
 
 		float line_height = (map_size * 320) / ray_dist;
 		if (line_height > 320) {
@@ -205,31 +208,19 @@ void draw_rays_3D() {
 
 void buttons(unsigned char key, int delta_x, int delta_y) {
 	if (key == 'a') {
-		player_angle += 0.1;
-		if (player_angle > TWO_PI) {
-			player_angle -= TWO_PI;
-		}
-		player_degree_x = cos(player_angle) * 5;
-		player_degree_y = sin(player_angle) * 5;
+		player.add_angle(0.1);
 	}
 
 	if (key == 'd') {
-		player_angle -= 0.1;
-		if (player_angle < 0) {
-			player_angle += TWO_PI;
-		}
-		player_degree_x = cos(player_angle) * 5;
-		player_degree_y = sin(player_angle) * 5;
+		player.sub_angle(0.1);
 	}
 
 	if (key == 's') {
-		player_y -= player_degree_y;
-		player_x -= player_degree_x;
+		player.update_position(-player.deg_x(), -player.deg_y());
 	}
 
 	if (key == 'w') {
-		player_y += player_degree_y;
-		player_x += player_degree_x;
+		player.update_position(player.deg_x(), player.deg_y());
 	}
 
 	glutPostRedisplay();
@@ -249,11 +240,7 @@ void display() {
 void init() {
 	glClearColor(0.3, 0.3, 0.3, 0);
 	gluOrtho2D(0, WIDTH, 0, HEIGHT);
-	player_y = 150, player_x = 150;
 	map_x = 8, map_y = 8, map_size = 64;
-	player_angle = HALF_PI + 0.0001;
-	player_degree_x = cos(player_angle) * 5; 
-	player_degree_y = sin(player_angle) * 5;
 }
 
 int main(int argc, char* argv[]) {
